@@ -1,6 +1,6 @@
 # PetroBot — LLM-Powered Well Analytics Engine
 
-PetroBot is a natural language analytics engine for oil & gas well data. It lets engineers and analysts query a 2,000-well Middle East portfolio using plain English — no SQL, no dashboards, no custom reports. An LLM translates each question into a live MongoDB query, executes it, and returns a synthesised answer with supporting data.
+PetroBot is a natural language analytics engine for oil & gas operations. It enables engineers and analysts to query well information and production data using plain English — no SQL, no dashboards, no pre-built reports required. An LLM agent translates each question into a live database query, executes it safely, and returns a synthesised answer with supporting data tables and maps.
 
 ---
 
