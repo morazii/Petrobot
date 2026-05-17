@@ -4,6 +4,25 @@ PetroBot is a natural language analytics engine for oil & gas well data. It lets
 
 ---
 
+## Interface
+
+> Ask a question, get a structured answer. Every tool call and LLM response is fully auditable in the Prompt Viewer tab.
+
+### Chat — Natural Language Analytics
+<img src="docs/screenshots/chatui.png" width="100%" alt="PetroBot Chat UI — natural language queries with ranked data tables" />
+
+<br/>
+
+### Ontology & Knowledge Graph — Entity Explorer
+<img src="docs/screenshots/ontology.png" width="100%" alt="PetroBot KG Ontology — entity types, relationships, and graph statistics" />
+
+<br/>
+
+### Knowledge Graph Topology — Interactive Network
+<img src="docs/screenshots/kg_graph.png" width="100%" alt="PetroBot Knowledge Graph — interactive Plotly network of wells, fields, operators, and platforms" />
+
+---
+
 ## What it does
 
 - **Ask in plain English:** *"Which operator has the most drilling wells right now?"* → returns a ranked table in seconds.
