@@ -1,6 +1,22 @@
-# PetroBot — LLM-Powered Well Analytics Engine
+# PetroBot — Natural Language Analytics for Oil & Gas Well Data
 
-PetroBot is a natural language analytics engine for oil & gas well data. It lets engineers and analysts query a 2,000-well Middle East portfolio using plain English — no SQL, no dashboards, no custom reports. An LLM translates each question into a live MongoDB query, executes it, and returns a synthesised answer with supporting data.
+<p align="center">
+  <em>Query a 2,000-well Middle East portfolio with plain English. No SQL. No dashboards. No exports.</em>
+</p>
+
+---
+
+PetroBot is an **LLM-powered text-to-database analytics engine** built for oil & gas subsurface and operations teams. It bridges the gap between raw OSDU well data stored in MongoDB and the engineers who need fast answers from it — without writing a single query.
+
+The core idea: instead of building pre-canned dashboards that answer the questions you anticipated, PetroBot lets the LLM figure out the query at runtime. A user asks *"which contractor drilled the deepest wells and what is their average total depth?"* — the agent constructs the MongoDB aggregation pipeline, executes it safely, and returns a synthesised answer with a data table. Every step is fully auditable in the built-in Prompt Viewer.
+
+**Key facts:**
+- 📊 **2,000 wells** — Middle East portfolio (20 fields, 10 operators, onshore + offshore)
+- 🔧 **4 read-only tools** — `query_wells`, `aggregate_wells`, `get_well`, `get_map_data`
+- 🧠 **KG augmentation** — a `networkx` knowledge graph injects entity relationship hints before each LLM call, improving query precision on ambiguous questions
+- 🔒 **Safety-first** — a recursive operator scanner blocks all write/destructive MongoDB operators before any query runs
+- 🔌 **Provider-agnostic** — works with OpenAI, OpenRouter, Groq, Ollama, or any OpenAI-compatible endpoint via a single `.env` switch
+- 🗄️ **Dual backend** — swap between flat CSV schema and full OSDU nested envelope with `DATA_BACKEND=flat|osdu`
 
 ---
 
