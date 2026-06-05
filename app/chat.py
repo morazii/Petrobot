@@ -122,6 +122,7 @@ def render_chat():
             response = run_agent(
                 st.session_state.messages,
                 use_kg=bool(st.session_state.get("kg_enabled", False)),
+                llm_config=st.session_state.get("llm_runtime_config"),
             )
 
         if response.error:

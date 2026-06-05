@@ -1,0 +1,236 @@
+{
+  "name": "kg_entity_extraction_offline_suite_v1",
+  "description": "Offline KG extraction benchmark for PetroBot flat backend. No LLM API calls.",
+  "cases": [
+    {
+      "id": "field_delta",
+      "query": "How many wells are in Delta field?",
+      "expectation": "target",
+      "target_type": "field",
+      "target": "Delta"
+    },
+    {
+      "id": "field_eagle",
+      "query": "Compare production trend in Eagle field",
+      "expectation": "target",
+      "target_type": "field",
+      "target": "Eagle"
+    },
+    {
+      "id": "field_qamar",
+      "query": "Show wells in Qamar",
+      "expectation": "target",
+      "target_type": "field",
+      "target": "Qamar"
+    },
+    {
+      "id": "field_shams",
+      "query": "Any suspended wells in Shams field?",
+      "expectation": "target",
+      "target_type": "field",
+      "target": "Shams"
+    },
+    {
+      "id": "field_khuff",
+      "query": "Map wells for Khuff",
+      "expectation": "target",
+      "target_type": "field",
+      "target": "Khuff"
+    },
+    {
+      "id": "operator_adnoc",
+      "query": "How many drilling wells does ADNOC operate?",
+      "expectation": "target",
+      "target_type": "operator",
+      "target": "ADNOC"
+    },
+    {
+      "id": "operator_bp",
+      "query": "Show producing wells operated by BP",
+      "expectation": "target",
+      "target_type": "operator",
+      "target": "BP"
+    },
+    {
+      "id": "operator_shell",
+      "query": "What are Shell wells by status?",
+      "expectation": "target",
+      "target_type": "operator",
+      "target": "Shell"
+    },
+    {
+      "id": "operator_aramco",
+      "query": "List Saudi Aramco wells",
+      "expectation": "target",
+      "target_type": "operator",
+      "target": "Saudi Aramco"
+    },
+    {
+      "id": "operator_koc",
+      "query": "Kuwait Oil Company activity summary",
+      "expectation": "target",
+      "target_type": "operator",
+      "target": "Kuwait Oil Company"
+    },
+    {
+      "id": "status_drilling",
+      "query": "How many drilling wells right now?",
+      "expectation": "target",
+      "target_type": "status",
+      "target": "Drilling"
+    },
+    {
+      "id": "status_producing",
+      "query": "Show producing wells on a map",
+      "expectation": "target",
+      "target_type": "status",
+      "target": "Producing"
+    },
+    {
+      "id": "status_suspended",
+      "query": "List suspended wells",
+      "expectation": "target",
+      "target_type": "status",
+      "target": "Suspended"
+    },
+    {
+      "id": "status_testing",
+      "query": "How many wells are in testing status?",
+      "expectation": "target",
+      "target_type": "status",
+      "target": "Testing"
+    },
+    {
+      "id": "well_delta_15_exact",
+      "query": "Tell me about Delta-15",
+      "expectation": "target",
+      "target_type": "well",
+      "target": "Delta-15"
+    },
+    {
+      "id": "well_eagle_04_exact",
+      "query": "Give details for Eagle-04",
+      "expectation": "target",
+      "target_type": "well",
+      "target": "Eagle-04"
+    },
+    {
+      "id": "well_qamar_20_exact",
+      "query": "Summarize Qamar-20",
+      "expectation": "target",
+      "target_type": "well",
+      "target": "Qamar-20"
+    },
+    {
+      "id": "well_khuff_33_exact",
+      "query": "What is the status of Khuff-33?",
+      "expectation": "target",
+      "target_type": "well",
+      "target": "Khuff-33"
+    },
+    {
+      "id": "well_iris_29_exact",
+      "query": "Check Iris-29 metadata",
+      "expectation": "target",
+      "target_type": "well",
+      "target": "Iris-29"
+    },
+    {
+      "id": "well_shams_47_exact",
+      "query": "Tell me about Shams-47",
+      "expectation": "target",
+      "target_type": "well",
+      "target": "Shams-47"
+    },
+    {
+      "id": "well_rimal_45_exact",
+      "query": "Show Rimal-45 record",
+      "expectation": "target",
+      "target_type": "well",
+      "target": "Rimal-45"
+    },
+    {
+      "id": "well_alpha_13_exact",
+      "query": "Open Alpha-13 details",
+      "expectation": "target",
+      "target_type": "well",
+      "target": "Alpha-13"
+    },
+    {
+      "id": "well_delta_15_typo",
+      "query": "Tell me about deltta-15",
+      "expectation": "target",
+      "target_type": "well",
+      "target": "Delta-15"
+    },
+    {
+      "id": "well_eagle_04_typo",
+      "query": "Tell me about eagel-04",
+      "expectation": "target",
+      "target_type": "well",
+      "target": "Eagle-04"
+    },
+    {
+      "id": "well_qamar_20_typo",
+      "query": "Tell me about qamar-2x",
+      "expectation": "target",
+      "target_type": "well",
+      "target": "Qamar-20"
+    },
+    {
+      "id": "well_khuff_33_typo",
+      "query": "Tell me about khuf-33",
+      "expectation": "target",
+      "target_type": "well",
+      "target": "Khuff-33"
+    },
+    {
+      "id": "well_iris_29_typo",
+      "query": "Tell me about iris-2x",
+      "expectation": "target",
+      "target_type": "well",
+      "target": "Iris-29"
+    },
+    {
+      "id": "well_shams_47_typo",
+      "query": "Tell me about shams-4x",
+      "expectation": "target",
+      "target_type": "well",
+      "target": "Shams-47"
+    },
+    {
+      "id": "well_rimal_45_typo",
+      "query": "Tell me about rimal-4x",
+      "expectation": "target",
+      "target_type": "well",
+      "target": "Rimal-45"
+    },
+    {
+      "id": "well_alpha_13_typo",
+      "query": "Tell me about alhpa-13",
+      "expectation": "target",
+      "target_type": "well",
+      "target": "Alpha-13"
+    },
+    {
+      "id": "none_depth_query",
+      "query": "What are the top 5 deepest wells?",
+      "expectation": "none"
+    },
+    {
+      "id": "none_spud_query",
+      "query": "How many wells were spudded after 2018?",
+      "expectation": "none"
+    },
+    {
+      "id": "none_generic_help",
+      "query": "Can you help me analyze my portfolio?",
+      "expectation": "none"
+    },
+    {
+      "id": "none_mixed_analytics",
+      "query": "Rank wells by drillers_td_m and show average by year",
+      "expectation": "none"
+    }
+  ]
+}

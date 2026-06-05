@@ -31,6 +31,36 @@ This folder is organized so each concern has one clear home.
 - `backends/router.py`  
   Dispatch layer called by the LLM tool loop. Routes calls to active backend.
 
+## LLM transport layer
+
+- `../llm/curl_client.py`  
+  Shared HTTP transport that executes provider requests with `curl` only.
+
+- `../llm/providers.py`  
+  Provider adapters (Google AI Studio + OpenAI-compatible APIs like Groq/OpenRouter).
+
+- `../llm/types.py`  
+  Runtime config and normalized response dataclasses used by the agent loop.
+
+## KG grounding layer
+
+- `kg/graph_context.py`  
+  Builds KG topology and produces concise relationship hints for planner context.
+
+- `kg/grounding.py`  
+  Canonical entity resolution with confidence, planner control packet generation,
+  tool-arg normalization, schema validation, and execution-guided repair.
+
+### 7-stage grounding flow (flat backend)
+
+1. `schema_scope_from_query()` narrows allowed columns/filters for the question.
+2. `_stage2_candidate_list_for_mentions()` produces deterministic candidates for mention audit.
+3. `resolve_query_entities()` outputs canonical entities + confidence + ambiguity notes.
+4. Relationship/path constraints are encoded inside schema scope and filter guards.
+5. `planner_packet_from_grounding()` builds the control packet injected into model context.
+6. `try_repair_tool_args()` performs one deterministic repair on schema-field errors.
+7. `validate_tool_args()` enforces final schema gate before backend execution.
+
 ## Prompt organization
 
 - `prompts/flat_prompt.py`
@@ -48,3 +78,15 @@ Configured in `.env` via `DATA_BACKEND`:
 - `DATA_BACKEND=flat` (default for POC reliability)
 - `DATA_BACKEND=osdu` (future nested OSDU mode)
 
+## LLM provider switch
+
+Configured in `.env` via `LLM_PROVIDER`:
+
+- `LLM_PROVIDER=openai_compatible` for OpenAI-style endpoints (OpenAI, Groq, OpenRouter, Ollama, etc.)
+- `LLM_PROVIDER=google_ai_studio` for native Gemini `generateContent` endpoint
+
+Common variables:
+
+- `LLM_MODEL`
+- `LLM_API_KEY`
+- `LLM_BASE_URL`

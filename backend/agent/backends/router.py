@@ -14,6 +14,12 @@ from typing import Any
 
 import config.settings as cfg
 from backend.agent.backends import flat_backend, osdu_backend
+from backend.agent.kg.grounding import (
+    GroundingResult,
+    apply_grounding_to_tool_args,
+    try_repair_tool_args,
+    validate_tool_args,
+)
 
 ACTIVE_BACKEND = flat_backend if cfg.DATA_BACKEND == "flat" else osdu_backend
 
@@ -60,7 +66,7 @@ TOOL_FUNCTIONS = {
 }
 
 
-def dispatch_tool(tool_name: str, tool_args: dict | str) -> Any:
+def dispatch_tool(tool_name: str, tool_args: dict | str, grounding: GroundingResult | None = None) -> Any:
     """
     Dispatch one model tool call.
 
@@ -82,5 +88,22 @@ def dispatch_tool(tool_name: str, tool_args: dict | str) -> Any:
         except json.JSONDecodeError as exc:
             return {"error": f"Could not parse tool arguments as JSON: {exc}"}
 
-    return fn(**tool_args)
+    try:
+        tool_args, _ = apply_grounding_to_tool_args(tool_name, tool_args, grounding)
+        validate_tool_args(tool_name, tool_args)
+    except ValueError as exc:
+        repaired = try_repair_tool_args(tool_name, tool_args, str(exc))
+        if not repaired:
+            return {"error": str(exc)}
+        repaired_args, repair_note = repaired
+        try:
+            validate_tool_args(tool_name, repaired_args)
+            tool_args = repaired_args
+        except ValueError as second_exc:
+            return {"error": f"{second_exc} (repair_attempted: {repair_note})"}
+        except Exception as second_exc:
+            return {"error": f"Repair validation failed: {second_exc}"}
+    except Exception as exc:
+        return {"error": f"Failed to normalize tool arguments: {exc}"}
 
+    return fn(**tool_args)

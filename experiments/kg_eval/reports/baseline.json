@@ -1,0 +1,144 @@
+{
+  "suite": "kg_entity_extraction_offline_suite_v1",
+  "cases_path": "C:\\Users\\moraz\\Documents\\Work\\Petrobot\\experiments\\kg_eval\\cases.json",
+  "summary": {
+    "total_cases": 34,
+    "target_cases": 30,
+    "no_entity_cases": 4,
+    "precision": 0.5333333333333333,
+    "recall": 0.8,
+    "f1": 0.64,
+    "hit_rate": 0.8,
+    "hit_at1_rate": 0.8,
+    "hit_at2_rate": 0.8,
+    "typo_well_hit_at1_rate": 0.25,
+    "no_entity_pass_rate": 1.0,
+    "overall_pass": false
+  },
+  "per_type": {
+    "field": {
+      "cases": 5,
+      "hit_rate": 1.0,
+      "hit_at1_rate": 1.0
+    },
+    "operator": {
+      "cases": 5,
+      "hit_rate": 1.0,
+      "hit_at1_rate": 1.0
+    },
+    "status": {
+      "cases": 4,
+      "hit_rate": 1.0,
+      "hit_at1_rate": 1.0
+    },
+    "well": {
+      "cases": 16,
+      "hit_rate": 0.625,
+      "hit_at1_rate": 0.625
+    }
+  },
+  "gates": {
+    "min_f1": 0.85,
+    "min_typo_hit_at1": 0.9
+  },
+  "gate_results": {
+    "f1_pass": false,
+    "typo_hit_at1_pass": false
+  },
+  "misses": [
+    {
+      "id": "well_qamar_20_typo",
+      "query": "Tell me about qamar-2x",
+      "reason": "target_missed",
+      "target_type": "well",
+      "target": "qamar-20",
+      "predicted_entities": [
+        "field:Qamar",
+        "well:Qamar-29",
+        "well:Qamar-19"
+      ],
+      "typed_predictions": [
+        "qamar-29",
+        "qamar-19"
+      ]
+    },
+    {
+      "id": "well_khuff_33_typo",
+      "query": "Tell me about khuf-33",
+      "reason": "target_missed",
+      "target_type": "well",
+      "target": "khuff-33",
+      "predicted_entities": [
+        "well:Lulu-33",
+        "well:Alpha-33"
+      ],
+      "typed_predictions": [
+        "lulu-33",
+        "alpha-33"
+      ]
+    },
+    {
+      "id": "well_iris_29_typo",
+      "query": "Tell me about iris-2x",
+      "reason": "target_missed",
+      "target_type": "well",
+      "target": "iris-29",
+      "predicted_entities": [
+        "field:Iris",
+        "well:Iris-16",
+        "well:Iris-45"
+      ],
+      "typed_predictions": [
+        "iris-16",
+        "iris-45"
+      ]
+    },
+    {
+      "id": "well_shams_47_typo",
+      "query": "Tell me about shams-4x",
+      "reason": "target_missed",
+      "target_type": "well",
+      "target": "shams-47",
+      "predicted_entities": [
+        "field:Shams",
+        "well:Shams-20",
+        "well:Shams-36"
+      ],
+      "typed_predictions": [
+        "shams-20",
+        "shams-36"
+      ]
+    },
+    {
+      "id": "well_rimal_45_typo",
+      "query": "Tell me about rimal-4x",
+      "reason": "target_missed",
+      "target_type": "well",
+      "target": "rimal-45",
+      "predicted_entities": [
+        "field:Rimal",
+        "well:Rimal-42",
+        "well:Rimal-30"
+      ],
+      "typed_predictions": [
+        "rimal-42",
+        "rimal-30"
+      ]
+    },
+    {
+      "id": "well_alpha_13_typo",
+      "query": "Tell me about alhpa-13",
+      "reason": "target_missed",
+      "target_type": "well",
+      "target": "alpha-13",
+      "predicted_entities": [
+        "well:Mauddud-13",
+        "well:Shams-13"
+      ],
+      "typed_predictions": [
+        "mauddud-13",
+        "shams-13"
+      ]
+    }
+  ]
+}

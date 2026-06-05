@@ -18,13 +18,19 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
-from openai import OpenAI
-
 import config.settings as cfg
 from backend.agent.kg.graph_context import generate_kg_context
+from backend.agent.kg.grounding import (
+    grounding_to_prompt_text,
+    planner_packet_from_grounding,
+    planner_packet_to_prompt_text,
+    resolve_query_entities,
+)
 from backend.agent.system_prompt import SYSTEM_PROMPT
 from backend.agent.tool_schemas import TOOL_SCHEMAS
 from backend.agent.tools import dispatch_tool
+from backend.llm.providers import google_ai_studio_turn, openai_compatible_turn, to_gemini_contents
+from backend.llm.types import LLMRuntimeConfig
 
 
 @dataclass
@@ -45,38 +51,20 @@ class AgentResponse:
     # {"type": "llm_reply", "round": 1, "content": "Final answer..."}
 
 
-def _make_client() -> OpenAI:
-    headers = None
-    # These attribution headers are specific to OpenRouter.
-    if "openrouter.ai" in cfg.LLM_BASE_URL:
-        headers = {
-            "HTTP-Referer": "https://petrobot.app",
-            "X-OpenRouter-Title": "PetroBot",
-        }
-
-    return OpenAI(
-        api_key=cfg.LLM_API_KEY,
-        base_url=cfg.LLM_BASE_URL,
-        default_headers=headers,
-    )
-
-
-_client: OpenAI | None = None
-
-
-def _get_client() -> OpenAI:
-    global _client
-    if _client is None:
-        _client = _make_client()
-    return _client
-
-
 def _truncate(obj: Any, max_chars: int = cfg.MAX_RESULT_CHARS) -> str:
     """Serialize tool result to JSON and cap size before feeding back to model."""
     payload = json.dumps(obj, default=str, ensure_ascii=False)
     if len(payload) > max_chars:
         payload = payload[:max_chars] + f"\n... [truncated - {len(payload) - max_chars} chars omitted]"
     return payload
+
+
+def _as_capped_object(obj: Any) -> Any:
+    """Keep function response JSON lightweight for providers that need structured objects."""
+    payload = json.dumps(obj, default=str, ensure_ascii=False)
+    if len(payload) <= cfg.MAX_RESULT_CHARS:
+        return obj
+    return {"truncated_json": payload[: cfg.MAX_RESULT_CHARS]}
 
 
 def _is_map_result(result: Any) -> bool:
@@ -95,7 +83,51 @@ def _is_tabular(result: Any) -> bool:
     )
 
 
-def run_agent(messages: list[dict], stream: bool = False, use_kg: bool = False) -> AgentResponse:
+def _normalize_provider(raw: str) -> str:
+    val = (raw or "").strip().lower()
+    aliases = {
+        "openai": "openai_compatible",
+        "openai_compatible": "openai_compatible",
+        "groq": "groq",
+        "openrouter": "openrouter",
+        "google": "google_ai_studio",
+        "google_ai_studio": "google_ai_studio",
+        "gemini": "google_ai_studio",
+    }
+    return aliases.get(val, "openai_compatible")
+
+
+def _resolve_runtime(llm_config: dict | None) -> LLMRuntimeConfig:
+    provider = _normalize_provider((llm_config or {}).get("provider", cfg.LLM_PROVIDER))
+    model = str((llm_config or {}).get("model", cfg.LLM_MODEL))
+    base_url = str((llm_config or {}).get("base_url", cfg.LLM_BASE_URL)).strip().rstrip("/")
+    api_key = str((llm_config or {}).get("api_key", cfg.LLM_API_KEY)).strip()
+
+    if provider == "groq":
+        base_url = base_url or "https://api.groq.com/openai/v1"
+    elif provider == "openrouter":
+        base_url = base_url or "https://openrouter.ai/api/v1"
+    elif provider == "google_ai_studio":
+        base_url = base_url or "https://generativelanguage.googleapis.com/v1beta"
+
+    # Normalize common OpenAI-compatible copy/paste mistakes.
+    if provider in {"openai_compatible", "groq", "openrouter"}:
+        for suffix in ("/chat/completions", "/completions"):
+            if base_url.endswith(suffix):
+                base_url = base_url[: -len(suffix)]
+
+    if not api_key:
+        raise ValueError("Selected provider is missing an API key.")
+
+    return LLMRuntimeConfig(provider=provider, model=model, base_url=base_url, api_key=api_key)
+
+
+def run_agent(
+    messages: list[dict],
+    stream: bool = False,
+    use_kg: bool = False,
+    llm_config: dict | None = None,
+) -> AgentResponse:
     """
     Execute one end-to-end agent turn.
 
@@ -105,14 +137,17 @@ def run_agent(messages: list[dict], stream: bool = False, use_kg: bool = False) 
     _ = stream  # Reserved for future streaming support.
     response = AgentResponse()
     response.kg_enabled = bool(use_kg)
-    client = _get_client()
     started = time.perf_counter()
 
-    full_messages: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
+    try:
+        runtime = _resolve_runtime(llm_config)
+    except Exception as exc:
+        response.error = f"Invalid LLM configuration: {exc}"
+        response.text = "I could not start because the model configuration is invalid."
+        response.elapsed_ms = (time.perf_counter() - started) * 1000
+        return response
 
     # Optional KG augmentation:
-    # we add one extra system hint that summarizes graph relationships relevant
-    # to the current user query. The model must still verify final answers via tools.
     latest_user_text = ""
     for msg in reversed(messages):
         if msg.get("role") == "user":
@@ -120,8 +155,9 @@ def run_agent(messages: list[dict], stream: bool = False, use_kg: bool = False) 
             break
 
     kg_ctx = generate_kg_context(latest_user_text, enabled=use_kg)
+    grounding = resolve_query_entities(latest_user_text, enabled=use_kg)
+
     if kg_ctx:
-        full_messages.append({"role": "system", "content": kg_ctx.text})
         response.kg_matched_entities = kg_ctx.matched_entities
         response.kg_entities = kg_ctx.entities
         response.trace.append(
@@ -134,31 +170,75 @@ def run_agent(messages: list[dict], stream: bool = False, use_kg: bool = False) 
             }
         )
 
-    full_messages.extend(messages)
+    grounding_text = grounding_to_prompt_text(grounding)
+    grounding_packet = planner_packet_from_grounding(latest_user_text, grounding) if use_kg else None
+    grounding_packet_text = planner_packet_to_prompt_text(grounding_packet) if grounding_packet else ""
+    if grounding.entities:
+        response.trace.append(
+            {
+                "type": "kg_grounding",
+                "round": 0,
+                "ambiguous": grounding.ambiguous,
+                "entities": [
+                    {
+                        "entity_type": e.entity_type,
+                        "canonical_id": e.canonical_id,
+                        "canonical_value": e.canonical_value,
+                        "confidence": e.confidence,
+                        "source": e.source,
+                    }
+                    for e in grounding.entities
+                ],
+                "notes": grounding.notes,
+            }
+        )
+    if grounding_packet:
+        response.trace.append({"type": "kg_grounding_packet", "round": 0, "packet": grounding_packet})
+
+    system_text = SYSTEM_PROMPT + (f"\n\n{kg_ctx.text}" if kg_ctx else "") + f"\n\n{grounding_text}"
+    if grounding_packet_text:
+        system_text += f"\n\n{grounding_packet_text}"
+
+    openai_messages: list[dict] = []
+    google_contents: list[dict] = []
+
+    if runtime.provider == "google_ai_studio":
+        google_contents = to_gemini_contents(messages)
+    else:
+        openai_messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        if kg_ctx:
+            openai_messages.append({"role": "system", "content": kg_ctx.text})
+        openai_messages.append({"role": "system", "content": grounding_text})
+        if grounding_packet_text:
+            openai_messages.append({"role": "system", "content": grounding_packet_text})
+        openai_messages.extend(messages)
 
     last_tool_result: Any = None
     last_tool_name: str | None = None
 
     for round_num in range(cfg.MAX_TOOL_ROUNDS):
         try:
-            completion = client.chat.completions.create(
-                model=cfg.LLM_MODEL,
-                messages=full_messages,
-                tools=TOOL_SCHEMAS,
-                tool_choice="auto",
-                temperature=0.1,
-            )
+            if runtime.provider == "google_ai_studio":
+                turn = google_ai_studio_turn(
+                    runtime=runtime,
+                    contents=google_contents,
+                    system_instruction=system_text,
+                    tool_schemas=TOOL_SCHEMAS,
+                )
+            else:
+                turn = openai_compatible_turn(
+                    runtime=runtime,
+                    messages=openai_messages,
+                    tool_schemas=TOOL_SCHEMAS,
+                )
         except Exception as exc:
             response.error = f"LLM API error: {exc}"
-            response.text = "I encountered an error reaching the AI model. Please check your API key and try again."
+            response.text = "I encountered an error reaching the AI model. Please check the selected provider/model and key."
             response.elapsed_ms = (time.perf_counter() - started) * 1000
             return response
 
-        msg = completion.choices[0].message
-
-        # No tool calls means the model finalized its answer.
-        if not msg.tool_calls:
-            response.text = msg.content or ""
+        if not turn.tool_calls:
+            response.text = turn.content
             response.trace.append({"type": "llm_reply", "round": round_num, "content": response.text})
 
             if last_tool_name == "get_map_data" and _is_map_result(last_tool_result):
@@ -169,21 +249,22 @@ def run_agent(messages: list[dict], stream: bool = False, use_kg: bool = False) 
             response.elapsed_ms = (time.perf_counter() - started) * 1000
             return response
 
-        # Keep assistant tool-call message in history, then execute each tool.
-        full_messages.append(msg.model_dump(exclude_unset=True))
+        if runtime.provider == "google_ai_studio":
+            google_contents.append(turn.raw_message)
+        else:
+            openai_messages.append(turn.raw_message)
 
-        for tool_call in msg.tool_calls:
-            tool_name = tool_call.function.name
+        for tool_call in turn.tool_calls:
+            tool_name = tool_call.name
             response.tool_calls.append(tool_name)
 
-            # Parse function arguments exactly as returned by the LLM.
             try:
-                tool_args = json.loads(tool_call.function.arguments or "{}")
+                tool_args = json.loads(tool_call.arguments_json or "{}")
             except json.JSONDecodeError as exc:
                 tool_result = {"error": f"Failed to parse tool arguments: {exc}"}
                 tool_args = {}
             else:
-                tool_result = dispatch_tool(tool_name, tool_args)
+                tool_result = dispatch_tool(tool_name, tool_args, grounding=grounding)
 
             response.trace.append(
                 {"type": "tool_call", "round": round_num, "name": tool_name, "args": tool_args}
@@ -201,14 +282,29 @@ def run_agent(messages: list[dict], stream: bool = False, use_kg: bool = False) 
             last_tool_result = tool_result
             last_tool_name = tool_name
 
-            # This tool payload is what the model "sees" before next reasoning step.
-            full_messages.append(
-                {
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "content": _truncate(tool_result),
-                }
-            )
+            if runtime.provider == "google_ai_studio":
+                google_contents.append(
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "functionResponse": {
+                                    "id": tool_call.id,
+                                    "name": tool_name,
+                                    "response": {"result": _as_capped_object(tool_result)},
+                                }
+                            }
+                        ],
+                    }
+                )
+            else:
+                openai_messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": _truncate(tool_result),
+                    }
+                )
 
     response.error = f"Agent reached maximum tool rounds ({cfg.MAX_TOOL_ROUNDS}) without a final answer."
     response.text = (

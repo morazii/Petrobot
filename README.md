@@ -167,3 +167,44 @@ The app seeds MongoDB automatically on first launch — no separate data ingesti
 | `MONGO_URI` | ✅ | MongoDB Atlas connection string |
 | `DATA_BACKEND` | ❌ | `flat` (default) or `osdu` |
 | `MAX_TOOL_ROUNDS` | ❌ | Max LLM tool calls per turn (default: 6) |
+
+---
+
+## Knowledge Graph Grounding (How It Works)
+
+In flat backend mode, KG is implemented as a deterministic 7-stage grounding pipeline:
+
+1. **Schema Scope**
+- Infer the domain and allowed table/columns/filters for this question.
+
+2. **Candidate Generation**
+- Generate entity candidates for mentions (especially well names with typos/format drift).
+
+3. **Entity Resolution**
+- Pick canonical IDs/values with confidence, and flag ambiguity when close candidates exist.
+
+4. **Path Constraints**
+- Build relationship-safe query constraints so planner/tool calls stay schema-valid.
+
+5. **Planner Control Packet**
+- Inject a structured packet into the LLM prompt:
+  `resolved_entities`, `unresolved_mentions`, `schema_scope`, and hard constraints.
+
+6. **Execution-Guided Repair**
+- If schema validation fails (e.g., misspelled field), attempt one deterministic repair,
+  re-validate, then execute.
+
+7. **Final Validation Gate**
+- Validate filter fields and pipeline references against the flat schema before DB execution.
+
+This ensures canonical entity usage, constrained planning, and strict query validation.
+
+### Offline KG Experiments
+
+The experiment suite is isolated and does not call any LLM API:
+
+```bash
+.\venv\Scripts\python experiments/kg_eval/run_eval.py --report experiments/kg_eval/reports/baseline.json
+```
+
+This outputs precision/recall/F1, hit rates, typo-well performance, and miss examples.
