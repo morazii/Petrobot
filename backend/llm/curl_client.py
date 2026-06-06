@@ -13,6 +13,8 @@ def post_json(url: str, headers: dict[str, str], payload: dict, timeout_s: int =
         "-L",
         "--max-time",
         str(timeout_s),
+        "--connect-timeout",
+        "10",
         "-X",
         "POST",
         url,
@@ -28,19 +30,23 @@ def post_json(url: str, headers: dict[str, str], payload: dict, timeout_s: int =
         cmd,
         input=body,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         capture_output=True,
         check=False,
     )
     if proc.returncode != 0:
-        raise RuntimeError(f"curl call failed ({proc.returncode}): {proc.stderr.strip()}")
+        stderr = (proc.stderr or "").strip()
+        raise RuntimeError(f"curl call failed ({proc.returncode}): {stderr}")
 
-    if not proc.stdout.strip():
+    stdout = (proc.stdout or "").strip()
+    if not stdout:
         raise RuntimeError("curl call returned an empty response body.")
 
     try:
-        parsed = json.loads(proc.stdout)
+        parsed = json.loads(stdout)
     except json.JSONDecodeError as exc:
-        stderr = proc.stderr.strip()
+        stderr = (proc.stderr or "").strip()
         raise RuntimeError(f"provider response is not valid JSON: {exc}; stderr={stderr}") from exc
 
     if isinstance(parsed, dict) and parsed.get("error"):

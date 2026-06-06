@@ -29,46 +29,59 @@ def load_css():
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 
-st.set_page_config(
-    page_title="PetroBot Analytics",
-    page_icon="⛽",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+def main():
+    st.set_page_config(
+        page_title="PetroBot Analytics",
+        page_icon="⛽",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
 
-# Apply custom styling
-load_css()
+    # Apply custom styling
+    load_css()
 
-# Sidebar
-render_sidebar()
+    # Sidebar
+    try:
+        render_sidebar()
+    except Exception as exc:
+        st.error(f"Sidebar failed to load: {exc}")
+        st.session_state.llm_runtime_config = None
 
-# Header
-st.markdown(
-    """
-    <section class="hero-shell">
-      <h1 class="hero-brand">PetroBot</h1>
-      <p>Ask natural-language questions about your Middle East well portfolio and inspect structured outputs inline.</p>
-    </section>
-    """,
-    unsafe_allow_html=True,
-)
+    # Header
+    st.markdown(
+        """
+        <section class="hero-shell">
+          <h1 class="hero-brand">PetroBot</h1>
+          <p>Ask natural-language questions about your Middle East well portfolio and inspect structured outputs inline.</p>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
 
-st.markdown('<section class="view-switch">', unsafe_allow_html=True)
-active_view = st.radio(
-    "Workspace View",
-    ["Chat", "Dataset Preview", "Prompt Viewer", "Ontology & KG"],
-    horizontal=True,
-    label_visibility="collapsed",
-)
-st.markdown("</section>", unsafe_allow_html=True)
+    st.markdown('<section class="view-switch">', unsafe_allow_html=True)
+    active_view = st.radio(
+        "Workspace View",
+        ["Chat", "Dataset Preview", "Prompt Viewer", "Ontology & KG"],
+        horizontal=True,
+        label_visibility="collapsed",
+    )
+    st.markdown("</section>", unsafe_allow_html=True)
 
-if active_view == "Chat":
-    render_chat()
-elif active_view == "Dataset Preview":
-    st.subheader("Dataset Preview")
-    st.caption("Showing the first 50 rows from well-information.csv.")
-    st.dataframe(load_dataset_preview(), use_container_width=True, hide_index=True)
-elif active_view == "Prompt Viewer":
-    render_prompt_viewer(st.session_state.get("responses", []))
-else:
-    render_kg_view()
+    try:
+        if active_view == "Chat":
+            render_chat()
+        elif active_view == "Dataset Preview":
+            st.subheader("Dataset Preview")
+            st.caption("Showing the first 50 rows from well-information.csv.")
+            st.dataframe(load_dataset_preview(), use_container_width=True, hide_index=True)
+        elif active_view == "Prompt Viewer":
+            render_prompt_viewer(st.session_state.get("responses", []))
+        else:
+            render_kg_view()
+    except Exception as exc:
+        st.error(f"{active_view} view failed to load: {exc}")
+        st.exception(exc)
+
+
+if __name__ == "__main__":
+    main()

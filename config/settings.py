@@ -95,3 +95,4 @@ CSV_DATA_PATH: str = os.getenv("CSV_DATA_PATH", "Data/well-information.csv")
 # Agent behavior
 MAX_TOOL_ROUNDS: int = int(os.getenv("MAX_TOOL_ROUNDS", "6"))  # max tool calls per user turn
 MAX_RESULT_CHARS: int = int(os.getenv("MAX_RESULT_CHARS", "8000"))  # truncate huge tool results
+LLM_TIMEOUT_S: int = int(os.getenv("LLM_TIMEOUT_S", "30"))  # fail provider calls fast enough for the UI

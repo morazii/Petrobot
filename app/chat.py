@@ -13,6 +13,7 @@ import streamlit as st
 
 from app.components.map_view import render_map
 from backend.agent.agent import (
+    AgentResponse,
     add_assistant_message,
     add_user_message,
     new_conversation,
@@ -63,6 +64,17 @@ def _render_response_data(response):
     elif response.table:
         with st.expander(f"Structured Result - {len(response.table)} rows", expanded=True):
             _render_table(response.table)
+
+
+def _local_response(user_input: str) -> AgentResponse | None:
+    text = (user_input or "").strip().lower()
+    if text in {"hi", "hello", "hey", "yo", "salam", "sup"}:
+        return AgentResponse(
+            text="Hi. Ask me a well analytics question, for example: `Which operator has the most drilling wells?`",
+            kg_enabled=bool(st.session_state.get("kg_enabled", False)),
+            elapsed_ms=0,
+        )
+    return None
 
 
 def _render_conversation_stream():
@@ -118,12 +130,14 @@ def render_chat():
     st.session_state.messages = add_user_message(st.session_state.messages, user_input)
 
     with st.chat_message("assistant"):
-        with st.spinner("Querying well data..."):
-            response = run_agent(
-                st.session_state.messages,
-                use_kg=bool(st.session_state.get("kg_enabled", False)),
-                llm_config=st.session_state.get("llm_runtime_config"),
-            )
+        response = _local_response(user_input)
+        if response is None:
+            with st.spinner("Querying well data..."):
+                response = run_agent(
+                    st.session_state.messages,
+                    use_kg=bool(st.session_state.get("kg_enabled", False)),
+                    llm_config=st.session_state.get("llm_runtime_config"),
+                )
 
         if response.error:
             st.error(response.error)

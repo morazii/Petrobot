@@ -3,6 +3,28 @@ import os
 import streamlit as st
 
 
+PROFILE_DEFAULTS = {
+    "google_ai_studio": {
+        "label": "Google AI Studio",
+        "model": "gemini-flash-latest",
+        "base_url": "https://generativelanguage.googleapis.com/v1beta",
+        "api_key_env": "GOOGLE_AI_STUDIO_API_KEY",
+    },
+    "groq": {
+        "label": "Groq",
+        "model": "openai/gpt-oss-120b",
+        "base_url": "https://api.groq.com/openai/v1",
+        "api_key_env": "GROQ_API_KEY",
+    },
+    "openrouter": {
+        "label": "OpenRouter",
+        "model": "openai/gpt-oss-120b:free",
+        "base_url": "https://openrouter.ai/api/v1",
+        "api_key_env": "OPENROUTER_API_KEY",
+    },
+}
+
+
 def _normalize_provider(raw: str) -> str:
     aliases = {
         "openai": "openai_compatible",
@@ -23,52 +45,34 @@ def render_sidebar():
 
         import config.settings as cfg
 
-        profile_defaults = {
-            "google_ai_studio": {
-                "label": "Google AI Studio",
-                "model": "gemini-flash-latest",
-                "base_url": "https://generativelanguage.googleapis.com/v1beta",
-                "api_key_env": "GOOGLE_AI_STUDIO_API_KEY",
-            },
-            "groq": {
-                "label": "Groq",
-                "model": "openai/gpt-oss-120b",
-                "base_url": "https://api.groq.com/openai/v1",
-                "api_key_env": "GROQ_API_KEY",
-            },
-            "openrouter": {
-                "label": "OpenRouter",
-                "model": "openai/gpt-oss-120b:free",
-                "base_url": "https://openrouter.ai/api/v1",
-                "api_key_env": "OPENROUTER_API_KEY",
-            },
-        }
-
         active_provider = _normalize_provider(cfg.LLM_PROVIDER)
-        if active_provider not in profile_defaults:
+        if active_provider not in PROFILE_DEFAULTS:
             active_provider = "google_ai_studio"
 
         if "llm_provider" not in st.session_state:
             st.session_state.llm_provider = active_provider
+        if "_last_llm_provider" not in st.session_state:
+            st.session_state._last_llm_provider = st.session_state.llm_provider
+        if "llm_model" not in st.session_state:
+            st.session_state.llm_model = cfg.LLM_MODEL
+        if "llm_base_url" not in st.session_state:
+            st.session_state.llm_base_url = cfg.LLM_BASE_URL
 
         provider = st.selectbox(
             "LLM Provider",
             options=["google_ai_studio", "groq", "openrouter"],
-            format_func=lambda p: profile_defaults[p]["label"],
+            format_func=lambda p: PROFILE_DEFAULTS[p]["label"],
             key="llm_provider",
         )
 
-        defaults = profile_defaults[provider]
-        model_key = f"llm_model_{provider}"
-        base_key = f"llm_base_{provider}"
+        defaults = PROFILE_DEFAULTS[provider]
+        if provider != st.session_state._last_llm_provider:
+            st.session_state.llm_model = defaults["model"]
+            st.session_state.llm_base_url = defaults["base_url"]
+            st.session_state._last_llm_provider = provider
 
-        if model_key not in st.session_state:
-            st.session_state[model_key] = cfg.LLM_MODEL if provider == active_provider else defaults["model"]
-        if base_key not in st.session_state:
-            st.session_state[base_key] = cfg.LLM_BASE_URL if provider == active_provider else defaults["base_url"]
-
-        model = st.text_input("Model", key=model_key)
-        base_url = st.text_input("Base URL", key=base_key)
+        model = st.text_input("Model", key="llm_model")
+        base_url = st.text_input("Base URL", key="llm_base_url")
         api_key = os.getenv(defaults["api_key_env"], "")
         if provider == "google_ai_studio" and not api_key:
             api_key = cfg.LLM_API_KEY if cfg.LLM_PROVIDER == "google_ai_studio" else ""
@@ -82,7 +86,7 @@ def render_sidebar():
 
         st.info(
             f"**Model:** {model}\n\n"
-            f"**Provider:** {profile_defaults[provider]['label']}\n\n"
+            f"**Provider:** {PROFILE_DEFAULTS[provider]['label']}\n\n"
             f"**Backend:** {cfg.DATA_BACKEND}"
         )
 
@@ -90,7 +94,7 @@ def render_sidebar():
         st.subheader("Performance")
 
         if "kg_enabled" not in st.session_state:
-            st.session_state.kg_enabled = False
+            st.session_state.kg_enabled = True
 
         st.toggle(
             "Knowledge Graph Augmentation",

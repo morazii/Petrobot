@@ -14,9 +14,9 @@ from pathlib import Path
 
 import networkx as nx
 import pandas as pd
-from thefuzz import process as fuzz_process
 
 import config.settings as cfg
+from backend.agent.kg.grounding import GroundingResult, resolve_query_entities
 
 
 @dataclass(frozen=True)
@@ -144,19 +144,6 @@ def _build_flat_graph() -> tuple[nx.Graph, dict[str, list[str]], dict[str, int]]
     return graph, indexes, stats
 
 
-def _contains_matches(query: str, candidates: list[str], limit: int = 3) -> list[str]:
-    q = query.lower()
-    matches = [c for c in candidates if c.lower() in q]
-    return matches[:limit]
-
-
-def _fuzzy_well_matches(query: str, well_names: list[str], limit: int = 2) -> list[str]:
-    if not well_names:
-        return []
-    picks = fuzz_process.extract(query, well_names, limit=limit)
-    return [name for name, score in picks if score >= 86]
-
-
 def get_kg_snapshot(max_wells: int = 180) -> dict:
     """
     Return a sampled graph snapshot suitable for GUI visualization.
@@ -211,13 +198,8 @@ def generate_kg_context(query: str, enabled: bool) -> KGContext | None:
     if not query:
         return None
 
-    graph, indexes, stats = _build_flat_graph()
-    field_hits = _contains_matches(query, indexes["fields"], limit=2)
-    operator_hits = _contains_matches(query, indexes["operators"], limit=2)
-    status_hits = _contains_matches(query, indexes["statuses"], limit=2)
-    well_hits = _contains_matches(query, indexes["wells"], limit=2)
-    if not well_hits:
-        well_hits = _fuzzy_well_matches(query, indexes["wells"], limit=2)
+    graph, _, stats = _build_flat_graph()
+    grounding: GroundingResult = resolve_query_entities(query, enabled=enabled)
 
     lines: list[str] = [
         "Knowledge graph hints (verify with tools):",
@@ -226,35 +208,64 @@ def generate_kg_context(query: str, enabled: bool) -> KGContext | None:
     entity_hits: list[str] = []
 
     matched = 0
-    for field_name in field_hits:
-        field_node = f"field:{field_name}"
-        well_count = sum(1 for n in graph.neighbors(field_node) if str(n).startswith("well:"))
-        lines.append(f"- field:{field_name} connected_wells={well_count}")
-        entity_hits.append(f"field:{field_name}")
-        matched += 1
+    for entity in grounding.entities:
+        etype = entity.entity_type
+        value = entity.canonical_value
+        canonical_id = entity.canonical_id
+        confidence = entity.confidence
 
-    for operator in operator_hits:
-        operator_node = f"operator:{operator}"
-        well_count = sum(1 for n in graph.neighbors(operator_node) if str(n).startswith("well:"))
-        lines.append(f"- operator:{operator} connected_wells={well_count}")
-        entity_hits.append(f"operator:{operator}")
-        matched += 1
-
-    for status in status_hits:
-        status_node = f"status:{status}"
-        well_count = sum(1 for n in graph.neighbors(status_node) if str(n).startswith("well:"))
-        lines.append(f"- status:{status} connected_wells={well_count}")
-        entity_hits.append(f"status:{status}")
-        matched += 1
-
-    for well_name in well_hits:
-        well_node = f"well:{well_name}"
-        if well_node not in graph:
+        if etype == "field":
+            field_node = canonical_id
+            if field_node not in graph:
+                continue
+            well_count = sum(1 for n in graph.neighbors(field_node) if str(n).startswith("well:"))
+            lines.append(
+                f"- field:{value} connected_wells={well_count} confidence={confidence:.2f}"
+            )
+            entity_hits.append(canonical_id)
+            matched += 1
             continue
-        neighbors = [graph.nodes[n].get("label", str(n)) for n in graph.neighbors(well_node)]
-        lines.append(f"- well:{well_name} neighbors={', '.join(neighbors[:5])}")
-        entity_hits.append(f"well:{well_name}")
-        matched += 1
+
+        if etype == "operator":
+            operator_node = canonical_id
+            if operator_node not in graph:
+                continue
+            well_count = sum(1 for n in graph.neighbors(operator_node) if str(n).startswith("well:"))
+            lines.append(
+                f"- operator:{value} connected_wells={well_count} confidence={confidence:.2f}"
+            )
+            entity_hits.append(canonical_id)
+            matched += 1
+            continue
+
+        if etype == "status":
+            status_node = canonical_id
+            if status_node not in graph:
+                continue
+            well_count = sum(1 for n in graph.neighbors(status_node) if str(n).startswith("well:"))
+            lines.append(
+                f"- status:{value} connected_wells={well_count} confidence={confidence:.2f}"
+            )
+            entity_hits.append(canonical_id)
+            matched += 1
+            continue
+
+        if etype == "well":
+            well_node = canonical_id
+            if well_node not in graph:
+                continue
+            neighbors = [graph.nodes[n].get("label", str(n)) for n in graph.neighbors(well_node)]
+            lines.append(
+                f"- well:{value} neighbors={', '.join(neighbors[:5])} confidence={confidence:.2f}"
+            )
+            entity_hits.append(canonical_id)
+            matched += 1
+
+    if grounding.ambiguous:
+        lines.append("- ambiguity: multiple close candidates detected; prefer tool verification.")
+
+    if grounding.notes:
+        lines.append(f"- grounding_notes: {', '.join(grounding.notes[:3])}")
 
     if matched == 0:
         lines.append("- no_direct_entity_match: use tools normally and rely on filter/aggregation.")

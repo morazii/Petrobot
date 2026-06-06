@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import time
 
+import config.settings as cfg
 from backend.llm.curl_client import post_json
 from backend.llm.types import LLMRuntimeConfig, NormalizedAssistantTurn, NormalizedToolCall
 
@@ -87,7 +88,7 @@ def openai_compatible_turn(
         "tool_choice": "auto",
         "temperature": 0.1,
     }
-    raw = post_json(url=url, headers=headers, payload=payload, timeout_s=90)
+    raw = post_json(url=url, headers=headers, payload=payload, timeout_s=cfg.LLM_TIMEOUT_S)
 
     choices = raw.get("choices") or []
     if not choices:
@@ -129,7 +130,7 @@ def google_ai_studio_turn(
         url=url,
         headers={"X-goog-api-key": runtime.api_key},
         payload=payload,
-        timeout_s=90,
+        timeout_s=cfg.LLM_TIMEOUT_S,
     )
 
     candidates = raw.get("candidates") or []
