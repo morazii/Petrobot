@@ -1,4 +1,4 @@
-# PetroBot — LLM-Powered Well Analytics Engine
+# PetroBot — LLM-Powered Well Information & Production Analytics Engine
 
 PetroBot is a natural language analytics engine for oil & gas operations. It enables engineers and analysts to query well information and production data using plain English, with no SQL, no dashboards, and no pre-built reports required. An LLM agent translates each question into a live database query, executes it safely, and returns a synthesised answer with supporting data tables and maps.
 
@@ -198,13 +198,3 @@ In flat backend mode, KG is implemented as a deterministic 7-stage grounding pip
 - Validate filter fields and pipeline references against the flat schema before DB execution.
 
 This ensures canonical entity usage, constrained planning, and strict query validation.
-
-### Offline KG Experiments
-
-The experiment suite is isolated and does not call any LLM API:
-
-```bash
-.\venv\Scripts\python experiments/kg_eval/run_eval.py --report experiments/kg_eval/reports/baseline.json
-```
-
-This outputs precision/recall/F1, hit rates, typo-well performance, and miss examples.
