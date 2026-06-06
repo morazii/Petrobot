@@ -1,7 +1,6 @@
-import sys
+﻿import sys
 from pathlib import Path
 
-import pandas as pd
 import streamlit as st
 
 # Ensure project root is in path so absolute imports work
@@ -9,17 +8,11 @@ project_root = str(Path(__file__).resolve().parents[1])
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from app.chat import render_chat
-from app.components.kg_view import render_kg_view
-from app.components.prompt_viewer import render_prompt_viewer
-from app.components.sidebar import render_sidebar
-
-
-@st.cache_data
-def load_dataset_preview():
-    """Load a small preview dataset for the right-rail panel."""
-    data_path = Path(__file__).resolve().parents[1] / "Data" / "well-information.csv"
-    return pd.read_csv(data_path, nrows=50)
+from app.features.chat.view import render_chat
+from app.features.dataset_preview.view import render_dataset_preview
+from app.features.knowledge_graph.view import render_kg_view
+from app.features.prompt_viewer.view import render_prompt_viewer
+from app.shared.components.sidebar import render_sidebar
 
 
 def load_css():
@@ -32,7 +25,7 @@ def load_css():
 def main():
     st.set_page_config(
         page_title="PetroBot Analytics",
-        page_icon="⛽",
+        page_icon="â›½",
         layout="wide",
         initial_sidebar_state="expanded",
     )
@@ -71,9 +64,7 @@ def main():
         if active_view == "Chat":
             render_chat()
         elif active_view == "Dataset Preview":
-            st.subheader("Dataset Preview")
-            st.caption("Showing the first 50 rows from well-information.csv.")
-            st.dataframe(load_dataset_preview(), use_container_width=True, hide_index=True)
+            render_dataset_preview()
         elif active_view == "Prompt Viewer":
             render_prompt_viewer(st.session_state.get("responses", []))
         else:
@@ -85,3 +76,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

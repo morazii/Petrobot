@@ -1,4 +1,4 @@
-# PetroBot — LLM-Powered Well Information & Production Analytics Engine
+﻿# PetroBot â€” LLM-Powered Well Information & Production Analytics Engine
 
 PetroBot is a natural language analytics engine for oil & gas operations. It enables engineers and analysts to query well information and production data using plain English, with no SQL, no dashboards, and no pre-built reports required. An LLM agent translates each question into a live database query, executes it safely, and returns a synthesised answer with supporting data tables and maps.
 
@@ -8,79 +8,75 @@ PetroBot is a natural language analytics engine for oil & gas operations. It ena
 
 > Ask a question, get a structured answer. Every tool call and LLM response is fully auditable in the Prompt Viewer tab.
 
-### Chat — Natural Language Analytics
-<img src="docs/screenshots/chatui.png" width="100%" alt="PetroBot Chat UI — natural language queries with ranked data tables" />
+### Chat â€” Natural Language Analytics
+Natural-language well analytics with inline answers, tables, maps, and trace metadata.
 
-<br/>
+### Ontology & Knowledge Graph â€” Entity Explorer
+KG ontology and topology views for wells, fields, operators, statuses, objectives, and platforms.
 
-### Ontology & Knowledge Graph — Entity Explorer
-<img src="docs/screenshots/ontology.png" width="100%" alt="PetroBot KG Ontology — entity types, relationships, and graph statistics" />
-
-<br/>
-
-### Knowledge Graph Topology — Interactive Network
-<img src="docs/screenshots/kg_graph.png" width="100%" alt="PetroBot Knowledge Graph — interactive Plotly network of wells, fields, operators, and platforms" />
+### Prompt Viewer â€” Trace Inspector
+Audit tool calls, KG grounding packets, LLM replies, and structured outputs for each turn.
 
 ---
 
 ## What it does
 
-- **Ask in plain English:** *"Which operator has the most drilling wells right now?"* → returns a ranked table in seconds.
-- **Map visualisation:** *"Show all producing wells"* → renders an interactive geographic scatter map.
-- **Well lookup with fuzzy matching:** *"Tell me about Deltta-15"* (typo) → still finds the right well.
+- **Ask in plain English:** *"Which operator has the most drilling wells right now?"* â†’ returns a ranked table in seconds.
+- **Map visualisation:** *"Show all producing wells"* â†’ renders an interactive geographic scatter map.
+- **Well lookup with fuzzy matching:** *"Tell me about Deltta-15"* (typo) â†’ still finds the right well.
 - **Prompt transparency:** A built-in **Prompt Viewer** tab shows every tool call, query argument, and LLM reply so the reasoning is fully auditable.
 - **Dataset preview:** Browse the raw CSV directly inside the UI.
-- **Knowledge Graph:** An interactive graph explorer visualises well–field–operator–platform relationships and provides query hints to the LLM.
+- **Knowledge Graph:** An interactive graph explorer visualises wellâ€“fieldâ€“operatorâ€“platform relationships and provides query hints to the LLM.
 
 ---
 
 ## Architecture
 
 ```
-┌──────────────────────────────────────────┐
-│            Streamlit UI (app/)           │
-│  Chat  │  Dataset Preview  │  KG View    │
-│         Prompt Viewer                    │
-└────────────────┬─────────────────────────┘
-                 │ run_agent()
-┌────────────────▼─────────────────────────┐
-│          Agent Loop (agent.py)           │
-│  1. Build context: system prompt + KG    │
-│  2. Call LLM with 4 tool schemas         │
-│  3. Dispatch tool → execute on MongoDB   │
-│  4. Feed result back → repeat            │
-│  5. Return structured AgentResponse      │
-└──────┬───────────────────┬───────────────┘
-       │                   │
-┌──────▼──────┐   ┌────────▼──────────────┐
-│  KG Module  │   │   Tool Router         │
-│ graph_       │   │  query_wells          │
-│ context.py  │   │  aggregate_wells       │
-│ (networkx)  │   │  get_well (fuzzy)      │
-└─────────────┘   │  get_map_data          │
-                  └────────┬──────────────┘
-                           │
-              ┌────────────▼──────────────┐
-              │  Backend Layer            │
-              │  flat_backend  (default)  │
-              │  osdu_backend  (OSDU mode)│
-              └────────────┬─────────────┘
-                           │
-              ┌────────────▼──────────────┐
-              │  MongoDB Atlas            │
-              │  wells_flat collection    │
-              │  (auto-seeded from CSV)   │
-              └───────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚            Streamlit UI (app/)           â”‚
+â”‚  Chat  â”‚  Dataset Preview  â”‚  KG View    â”‚
+â”‚         Prompt Viewer                    â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                 â”‚ run_agent()
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚     Agent Feature (service.py)          â”‚
+â”‚  1. Build context: system prompt + KG    â”‚
+â”‚  2. Call LLM with 4 tool schemas         â”‚
+â”‚  3. Dispatch tool â†’ execute on MongoDB   â”‚
+â”‚  4. Feed result back â†’ repeat            â”‚
+â”‚  5. Return structured AgentResponse      â”‚
+â””â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+       â”‚                   â”‚
+â”Œâ”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚  KG Module  â”‚   â”‚   Tool Router         â”‚
+â”‚ graph_       â”‚   â”‚  query_wells          â”‚
+â”‚ context.py  â”‚   â”‚  aggregate_wells       â”‚
+â”‚ (networkx)  â”‚   â”‚  get_well (fuzzy)      â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜   â”‚  get_map_data          â”‚
+                  â””â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                           â”‚
+              â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+              â”‚  Backend Layer            â”‚
+              â”‚  flat_backend  (default)  â”‚
+              â”‚  osdu_backend  (OSDU mode)â”‚
+              â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                           â”‚
+              â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+              â”‚  MongoDB Atlas            â”‚
+              â”‚  wells_flat collection    â”‚
+              â”‚  (auto-seeded from CSV)   â”‚
+              â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ### Key design decisions
 
 | Decision | Rationale |
 |---|---|
-| **LLM writes the queries** | The LLM constructs every MongoDB filter and aggregation pipeline at runtime. No hand-written queries — the LLM's full expressiveness is used. |
+| **LLM writes the queries** | The LLM constructs every MongoDB filter and aggregation pipeline at runtime. No hand-written queries â€” the LLM's full expressiveness is used. |
 | **Read-only safety scanner** | A recursive `check_safe()` function blocks all write/destructive MongoDB operators (`$out`, `$merge`, `$set`, etc.) before any query runs. |
 | **Dual backend (flat / OSDU)** | Swap `DATA_BACKEND=flat` (simple CSV schema) or `DATA_BACKEND=osdu` (full OSDU nested envelope) via `.env`. Same 4 tools, same agent loop, different collection. |
-| **Provider-agnostic LLM** | Uses the standard OpenAI SDK with a configurable `base_url`. Works with OpenAI, OpenRouter, Ollama, Azure, or any compatible endpoint — no vendor lock-in. |
+| **Provider-agnostic LLM** | Uses the standard OpenAI SDK with a configurable `base_url`. Works with OpenAI, OpenRouter, Ollama, Azure, or any compatible endpoint â€” no vendor lock-in. |
 | **KG augmentation** | A `networkx` graph is built from the CSV at startup (cached with `lru_cache`). For each user query, matched entities and their relationships are injected as system-message hints before the LLM replies. |
 | **Auto-seeding** | On first run the flat backend detects an empty MongoDB collection and seeds it from the CSV automatically. Zero manual setup. |
 
@@ -103,36 +99,35 @@ PetroBot is a natural language analytics engine for oil & gas operations. It ena
 
 ## Project Structure
 
-```
+```text
 petrobot/
-├── app/
-│   ├── main.py               # Streamlit entry point + tab layout
-│   ├── chat.py               # Chat interface logic
-│   ├── assets/style.css      # Custom dark glassmorphic theme
-│   └── components/
-│       ├── sidebar.py        # Demo queries + config panel
-│       ├── map_view.py       # Plotly scatter map
-│       ├── kg_view.py        # KG graph explorer
-│       └── prompt_viewer.py  # Full LLM trace inspector
-├── backend/
-│   └── agent/
-│       ├── agent.py          # Agent loop + AgentResponse dataclass
-│       ├── backends/
-│       │   ├── flat_backend.py   # Flat CSV-style query execution
-│       │   ├── osdu_backend.py   # Full OSDU schema query execution
-│       │   └── router.py         # Tool dispatcher
-│       ├── kg/
-│       │   └── graph_context.py  # KG build + context generation
-│       ├── prompts/
-│       │   ├── flat_prompt.py    # System prompt for flat backend
-│       │   └── osdu_prompt.py    # System prompt for OSDU backend
-│       └── schemas/              # OpenAI tool schemas
-├── config/settings.py        # Centralised env config loader
-├── Data/
-│   └── well-information.csv  # 2,000 well records (source of truth)
-├── .env.example              # Environment variable template
-├── requirements.txt
-└── run.py                    # Start the Streamlit app
+|-- app/
+|   |-- main.py                  # Streamlit entry point and feature routing
+|   |-- assets/style.css         # App styling
+|   |-- features/
+|   |   |-- chat/view.py          # Chat workflow
+|   |   |-- dataset_preview/view.py
+|   |   |-- knowledge_graph/view.py
+|   |   `-- prompt_viewer/view.py
+|   `-- shared/components/
+|       |-- sidebar.py            # Runtime config and demo prompts
+|       |-- map_view.py           # Reusable map rendering
+|       `-- charts.py
+|-- backend/
+|   |-- ARCHITECTURE.md
+|   |-- features/
+|   |   |-- agent/                # Agent loop, prompts, schemas, tool backends
+|   |   `-- knowledge_graph/      # KG graph, grounding, planner constraints
+|   `-- shared/
+|       |-- data_access/          # MongoDB clients, seed scripts, URI helpers
+|       |-- llm/                  # Curl transport and provider adapters
+|       `-- validators/           # Read-only safety and JSON helpers
+|-- config/settings.py            # Centralized env config loader
+|-- Data/                         # Source datasets
+|-- tests/knowledge_graph/kg_eval/          # Isolated KG evaluation suite
+|-- tests/agent/test_agent.py
+|-- requirements.txt
+`-- run.py                        # Start the Streamlit app
 ```
 
 ---
@@ -153,7 +148,7 @@ cp .env.example .env
 python run.py
 ```
 
-The app seeds MongoDB automatically on first launch — no separate data ingestion step needed.
+The app seeds MongoDB automatically on first launch â€” no separate data ingestion step needed.
 
 ---
 
@@ -161,12 +156,12 @@ The app seeds MongoDB automatically on first launch — no separate data ingesti
 
 | Variable | Required | Description |
 |---|---|---|
-| `LLM_API_KEY` | ✅ | API key for your LLM provider |
-| `LLM_BASE_URL` | ✅ | OpenAI-compatible API base URL |
-| `LLM_MODEL` | ✅ | Model identifier (e.g. `deepseek/deepseek-r1:free`) |
-| `MONGO_URI` | ✅ | MongoDB Atlas connection string |
-| `DATA_BACKEND` | ❌ | `flat` (default) or `osdu` |
-| `MAX_TOOL_ROUNDS` | ❌ | Max LLM tool calls per turn (default: 6) |
+| `LLM_API_KEY` | âœ… | API key for your LLM provider |
+| `LLM_BASE_URL` | âœ… | OpenAI-compatible API base URL |
+| `LLM_MODEL` | âœ… | Model identifier (e.g. `deepseek/deepseek-r1:free`) |
+| `MONGO_URI` | âœ… | MongoDB Atlas connection string |
+| `DATA_BACKEND` | âŒ | `flat` (default) or `osdu` |
+| `MAX_TOOL_ROUNDS` | âŒ | Max LLM tool calls per turn (default: 6) |
 
 ---
 
@@ -198,3 +193,11 @@ In flat backend mode, KG is implemented as a deterministic 7-stage grounding pip
 - Validate filter fields and pipeline references against the flat schema before DB execution.
 
 This ensures canonical entity usage, constrained planning, and strict query validation.
+
+Core KG files:
+
+- `backend/features/knowledge_graph/graph_context.py`
+- `backend/features/knowledge_graph/grounding.py`
+- `backend/features/agent/service.py`
+- `backend/features/agent/backends/router.py`
+

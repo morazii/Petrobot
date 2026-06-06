@@ -1,0 +1,92 @@
+{
+  "suite": "kg_entity_extraction_offline_suite_v1",
+  "cases_path": "C:\\Users\\moraz\\Documents\\Work\\Petrobot\\tests\\knowledge_graph\\kg_eval\\cases.json",
+  "summary": {
+    "total_cases": 34,
+    "target_cases": 30,
+    "no_entity_cases": 4,
+    "precision": 0.9,
+    "recall": 0.9,
+    "f1": 0.9,
+    "hit_rate": 0.9,
+    "hit_at1_rate": 0.9,
+    "hit_at2_rate": 0.9,
+    "typo_well_hit_at1_rate": 0.625,
+    "no_entity_pass_rate": 1.0,
+    "overall_pass": false
+  },
+  "per_type": {
+    "field": {
+      "cases": 5,
+      "hit_rate": 1.0,
+      "hit_at1_rate": 1.0
+    },
+    "operator": {
+      "cases": 5,
+      "hit_rate": 1.0,
+      "hit_at1_rate": 1.0
+    },
+    "status": {
+      "cases": 4,
+      "hit_rate": 1.0,
+      "hit_at1_rate": 1.0
+    },
+    "well": {
+      "cases": 16,
+      "hit_rate": 0.8125,
+      "hit_at1_rate": 0.8125
+    }
+  },
+  "gates": {
+    "min_f1": 0.85,
+    "min_typo_hit_at1": 0.9
+  },
+  "gate_results": {
+    "f1_pass": true,
+    "typo_hit_at1_pass": false
+  },
+  "misses": [
+    {
+      "id": "well_qamar_20_typo",
+      "query": "Tell me about qamar-2x",
+      "reason": "target_missed",
+      "target_type": "well",
+      "target": "qamar-20",
+      "predicted_entities": [
+        "field:Qamar",
+        "well:Qamar-25"
+      ],
+      "typed_predictions": [
+        "qamar-25"
+      ]
+    },
+    {
+      "id": "well_iris_29_typo",
+      "query": "Tell me about iris-2x",
+      "reason": "target_missed",
+      "target_type": "well",
+      "target": "iris-29",
+      "predicted_entities": [
+        "field:Iris",
+        "well:Iris-26"
+      ],
+      "typed_predictions": [
+        "iris-26"
+      ]
+    },
+    {
+      "id": "well_shams_47_typo",
+      "query": "Tell me about shams-4x",
+      "reason": "target_missed",
+      "target_type": "well",
+      "target": "shams-47",
+      "predicted_entities": [
+        "field:Shams",
+        "well:Shams-45"
+      ],
+      "typed_predictions": [
+        "shams-45"
+      ]
+    }
+  ]
+}
